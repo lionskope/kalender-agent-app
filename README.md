@@ -1,34 +1,63 @@
-# Sprach-Chatbot App
+# Kalender Agent App
 
-Moderne, mobilefreundliche Single-Page-Webanwendung mit React und Tailwind CSS. Die App bietet eine sprachfähige Chatbot-Oberfläche zur Erstellung von Aufgaben und Terminen (später Google Calendar/Tasks Integration).
+Eine moderne, mobilefreundliche Chatbot-App mit Sprachfunktion, React und Tailwind CSS.
 
-## Features
-- Chat-UI mit Nachrichtenverlauf
-- Text- und Spracheingabe (Web Speech API)
-- Optionale Sprachausgabe (SpeechSynthesis)
-- Platzhalter für OpenAI ChatGPT API (TODO)
-- Platzhalter für Google Calendar/Tasks (TODO)
-- Responsives, modernes Design (Tailwind CSS)
-- PWA-ready (manifest, Favicon, Meta-Tags)
+## 🚀 Live Demo
 
-## Entwicklung
+**App:** https://lionskope.github.io/kalender-agent-app/
+
+## 🔧 Setup
+
+### API-Schlüssel einrichten
+
+1. **GitHub Repository Secrets hinzufügen:**
+   - Gehe zu: `https://github.com/lionskope/kalender-agent-app/settings/secrets/actions`
+   - Füge folgende Secrets hinzu:
+     - `VITE_OPENAI_API_KEY`: Dein OpenAI API Key
+     - `VITE_GOOGLE_CLIENT_ID`: Deine Google Client ID
+
+2. **GitHub Pages Source ändern:**
+   - Gehe zu: `https://github.com/lionskope/kalender-agent-app/settings/pages`
+   - Ändere Source von "Deploy from a branch" zu "GitHub Actions"
+
+3. **Automatisches Deployment:**
+   - Bei jedem Push wird die App automatisch neu deployed
+   - Die API-Schlüssel werden sicher in den Build eingebettet
+
+### Lokale Entwicklung
+
 ```bash
+# Dependencies installieren
 npm install
+
+# .env Datei erstellen
+echo "VITE_OPENAI_API_KEY=your_openai_api_key_here" > .env
+echo "VITE_GOOGLE_CLIENT_ID=your_google_client_id_here" >> .env
+
+# Development Server starten
 npm run dev
 ```
 
-## .env Hinweise
-- Für die spätere API-Integration können folgende Variablen in einer `.env` gepflegt werden:
-  - `OPENAI_API_KEY`
-  - `GOOGLE_CLIENT_ID`
-  - `GOOGLE_API_KEY`
-- Beispiel für Redirect-URI (lokal):
-  - http://localhost:5182
+## 🛠️ Technologien
 
-## Deployment
-- Die App ist als PWA vorbereitet und kann auf jedem modernen Webserver gehostet werden.
+- **Frontend:** React 18, Vite
+- **Styling:** Tailwind CSS
+- **AI:** OpenAI ChatGPT API
+- **Authentication:** Google OAuth 2.0
+- **Deployment:** GitHub Pages + GitHub Actions
 
----
+## 📱 Features
 
-**Hinweis:**
-- Die API-Integrationen (OpenAI, Google) sind aktuell nur als Platzhalter implementiert und müssen noch ergänzt werden. 
+- 🤖 Intelligenter Chatbot mit OpenAI
+- 🎤 Sprach-zu-Text Funktion
+- 📅 Google Calendar Integration
+- ✅ Google Tasks Integration
+- 📱 Responsive Design
+- 🌙 Dark/Light Mode
+- ⚡ Schnelle Performance
+
+## 🔒 Sicherheit
+
+- API-Schlüssel werden als GitHub Secrets gespeichert
+- Keine sensiblen Daten im Code
+- Sichere OAuth 2.0 Implementation 

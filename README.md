@@ -62,3 +62,4 @@ npm run dev
 - Keine sensiblen Daten im Code
 - Sichere OAuth 2.0 Implementation # Test deployment
 # Fix Google OAuth redirect URIs
+# Update Google Client ID

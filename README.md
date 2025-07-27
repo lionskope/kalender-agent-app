@@ -63,3 +63,4 @@ npm run dev
 - Sichere OAuth 2.0 Implementation # Test deployment
 # Fix Google OAuth redirect URIs
 # Update Google Client ID
+# Update to new Google Client ID

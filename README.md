@@ -61,3 +61,4 @@ npm run dev
 - API-Schlüssel werden als GitHub Secrets gespeichert
 - Keine sensiblen Daten im Code
 - Sichere OAuth 2.0 Implementation # Test deployment
+# Fix Google OAuth redirect URIs

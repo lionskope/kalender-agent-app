@@ -129,7 +129,7 @@ async function fetchChatGPTMessage(message) {
 }
 
 // Google API-Zugangsdaten (aus Umgebungsvariablen)
-const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "824903097451-sa89qhl3pls2qmol0jrq681tm7sdcpf4.apps.googleusercontent.com";
 const googleCallbackUrl = import.meta.env.VITE_GOOGLE_CALLBACK_URL || "http://localhost:5183/auth/callback";
 const sessionSecret = "meineSuperGeheimeZufallsZeichenkette123!§$%&/()=abc";
 

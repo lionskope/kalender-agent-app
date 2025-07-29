@@ -90,7 +90,7 @@ async function createGoogleEventFromText(text, accessToken) {
 }
 
 const initialMessages = [
-  { sender: 'bot', text: 'Hallo! Wie kann ich dir helfen? Du kannst Aufgaben, Termine oder Erinnerungen per Text oder Sprache erstellen. Probiere "Erinner mich an Einkaufen gehen" oder "Erstelle eine Aufgabe für morgen"!' }
+  { sender: 'bot', text: 'Hallo! Wie kann ich dir helfen? Du kannst Aufgaben, Termine oder Erinnerungen per Text oder Sprache erstellen. Probiere "Erinner mich an Einkaufen gehen" oder "erstelle mir einen termin morgen um 14 uhr Zahnarzt"!' }
 ];
 
 // Hilfsfunktion: OpenAI ChatGPT API Call

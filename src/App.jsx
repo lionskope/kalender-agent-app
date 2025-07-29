@@ -266,7 +266,7 @@ export default function App() {
               const weekdays = ['sonntag', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag'];
               const targetDay = weekdays.findIndex(day => dateKeyword.includes(day));
               if (targetDay !== -1) {
-                const daysUntilTarget = (targetDay - today.getDay() + 7) % 7;
+                let daysUntilTarget = (targetDay - today.getDay() + 7) % 7;
                 if (daysUntilTarget === 0) daysUntilTarget = 7; // Nächste Woche
                 today.setDate(today.getDate() + daysUntilTarget);
                 dueDate = today.toISOString().split('T')[0];
@@ -363,7 +363,7 @@ export default function App() {
           </div>
         )}
       </header>
-      <main className="flex-1 flex flex-col max-w-lg w-full mx-auto p-2 pb-24">
+      <main className="flex-1 flex flex-col max-w-lg w-full mx-auto p-2 pb-32">
         {/* Google Tasks Panel */}
         {showTasksPanel && user && (
           <div className="mb-4">
@@ -380,39 +380,50 @@ export default function App() {
           </div>
         )}
         
-        <div className="flex-1 overflow-y-auto space-y-2 pt-2" style={{ minHeight: 0 }}>
+        <div className="flex-1 overflow-y-auto space-y-2 pt-2 pb-4" style={{ minHeight: 0 }}>
           {messages.map((msg, i) => (
             <ChatMessage key={i} sender={msg.sender} text={msg.text} />
           ))}
           <div ref={chatEndRef} />
         </div>
-        <form id="chat-input-form" onSubmit={sendMessage} className="fixed bottom-0 left-0 right-0 max-w-lg mx-auto w-full bg-white p-2 flex gap-2 shadow-lg">
-          <button
-            type="button"
-            onClick={startListening}
-            className={`p-2 rounded-full ${listening ? 'bg-sky-200' : 'bg-sky-100'} hover:bg-sky-200 transition`}
-            aria-label="Spracheingabe starten"
-            disabled={listening}
-          >
-            <MicrophoneIcon className="h-6 w-6 text-sky-600" />
-          </button>
-          <input
-            type="text"
-            className="flex-1 border rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-sky-400"
-            placeholder="Nachricht eingeben oder sprechen..."
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            autoFocus
-          />
-          <button
-            type="submit"
-            className="p-2 rounded-full bg-sky-600 hover:bg-sky-700 transition text-white"
-            aria-label="Nachricht senden"
-          >
-            <PaperAirplaneIcon className="h-6 w-6 rotate-90" />
-          </button>
-        </form>
       </main>
+      
+      {/* Mobile-optimierte Eingabeleiste */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
+        <div className="max-w-lg mx-auto p-3">
+          {/* Mikrofon-Button über der Eingabeleiste */}
+          <div className="flex justify-center mb-2">
+            <button
+              type="button"
+              onClick={startListening}
+              className={`p-3 rounded-full ${listening ? 'bg-sky-200' : 'bg-sky-100'} hover:bg-sky-200 transition shadow-md`}
+              aria-label="Spracheingabe starten"
+              disabled={listening}
+            >
+              <MicrophoneIcon className="h-7 w-7 text-sky-600" />
+            </button>
+          </div>
+          
+          {/* Eingabeleiste */}
+          <form id="chat-input-form" onSubmit={sendMessage} className="flex gap-2">
+            <input
+              type="text"
+              className="flex-1 border rounded-full px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400 text-base"
+              placeholder="Nachricht eingeben..."
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="p-3 rounded-full bg-sky-600 hover:bg-sky-700 transition text-white shadow-md"
+              aria-label="Nachricht senden"
+            >
+              <PaperAirplaneIcon className="h-6 w-6 rotate-90" />
+            </button>
+          </form>
+        </div>
+      </div>
       {/* Platzhalter für Google API Buttons */}
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 flex gap-2 z-10">
       </div>

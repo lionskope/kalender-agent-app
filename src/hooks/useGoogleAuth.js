@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 
 // Deine Google Client-ID
-const GOOGLE_CLIENT_ID = "824903097451-ilmndqqfa247ka93k4rbiapqhov7c6br.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "824903097451-sj1qur0tuon669812hbp8ogpon0ka6b3.apps.googleusercontent.com";
 
 function loadGoogleScriptPromise() {
   return new Promise((resolve, reject) => {

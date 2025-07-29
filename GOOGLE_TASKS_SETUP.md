@@ -27,7 +27,7 @@ Stellen Sie sicher, dass Ihr OAuth 2.0 Client die folgenden Scopes hat:
 ### 5. Credentials überprüfen
 1. Gehen Sie zu "APIs & Services" > "Credentials"
 2. Überprüfen Sie Ihre OAuth 2.0 Client ID
-3. Stellen Sie sicher, dass die Client ID korrekt ist: `824903097451-ilmndqqfa247ka93k4rbiapqhov7c6br.apps.googleusercontent.com`
+3. Stellen Sie sicher, dass die Client ID korrekt ist: `824903097451-sj1qur0tuon669812hbp8ogpon0ka6b3.apps.googleusercontent.com`
 
 ### 6. OAuth Consent Screen
 1. Gehen Sie zu "APIs & Services" > "OAuth consent screen"

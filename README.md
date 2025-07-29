@@ -64,3 +64,4 @@ npm run dev
 # Fix Google OAuth redirect URIs
 # Update Google Client ID
 # Update to new Google Client ID
+# Update to new Google Client ID v2

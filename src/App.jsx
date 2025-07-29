@@ -208,7 +208,7 @@ export default function App() {
     setInput('');
 
     // Erkenne Kalender-Befehl (deutlich erweitert)
-    const kalenderRegex = /\b(erstelle(n)?( mir)?( einen| einen neuen| einen weiteren)? ?termin|trage (mir )?einen termin ein|kalendereintrag|termin für|ich brauche einen termin|neuer termin|termin am|termin um)\b/i;
+    const kalenderRegex = /\b(erstelle(n)?( mir)?( einen| einen neuen| einen weiteren)? ?termin|trage (mir )?einen termin ein|kalendereintrag|termin für|ich brauche einen termin|neuer termin|termin am|termin um|meeting|besprechung|appointment|treffen)\b/i;
     if (kalenderRegex.test(input)) {
       const info = await createGoogleEventFromText(input, accessToken);
       const botMsg = { sender: 'bot', text: info };
@@ -218,7 +218,7 @@ export default function App() {
     }
 
     // Erkenne Tasks-Befehl
-    const tasksRegex = /\b(erstelle(n)?( mir)?( eine| eine neue| eine weitere)? ?aufgabe|trage (mir )?eine aufgabe ein|task für|ich brauche eine aufgabe|neue aufgabe|aufgabe erstellen|todo|to-do)\b/i;
+    const tasksRegex = /\b(erstelle(n)?( mir)?( eine| eine neue| eine weitere)? ?aufgabe|trage (mir )?eine aufgabe ein|task für|ich brauche eine aufgabe|neue aufgabe|aufgabe erstellen|todo|to-do|task|aufgabe)\b/i;
     if (tasksRegex.test(input)) {
       setShowTasksPanel(true);
       const botMsg = { sender: 'bot', text: 'Ich öffne das Tasks-Panel für Sie. Dort können Sie neue Aufgaben erstellen und verwalten.' };
@@ -227,7 +227,7 @@ export default function App() {
       return;
     }
 
-    // Erkenne Erinnerungs-Befehl
+    // Erkenne Erinnerungs-Befehl (Tasks)
     const reminderRegex = /\b(erinner mich|erinnere mich)\b/i;
     if (reminderRegex.test(input)) {
       // Extrahiere den Erinnerungstext
@@ -235,14 +235,48 @@ export default function App() {
       if (reminderMatch) {
         const reminderText = reminderMatch[1].trim();
         
-        // Versuche, ein Datum/Uhrzeit zu erkennen - auch im gesamten Text
+        // Versuche, ein Datum/Uhrzeit zu erkennen
         let dueDate = null;
         let title = reminderText;
         
-        // Bereinige den Titel von zusätzlichem Text
-        title = title.replace(/\bwenn man google task\b/gi, '').trim();
-        title = title.replace(/\bgoogle task\b/gi, '').trim();
-        title = title.replace(/\bgoogle tasks\b/gi, '').trim();
+        // Datum/Uhrzeit Erkennung verbessern
+        const dateTimeMatch = input.match(/\b(heute|morgen|übermorgen|nächste woche|nächsten montag|nächsten dienstag|nächsten mittwoch|nächsten donnerstag|nächsten freitag|nächsten samstag|nächsten sonntag)\b/i);
+        if (dateTimeMatch) {
+          const dateKeyword = dateTimeMatch[1].toLowerCase();
+          const today = new Date();
+          
+          switch (dateKeyword) {
+            case 'heute':
+              dueDate = today.toISOString().split('T')[0];
+              break;
+            case 'morgen':
+              today.setDate(today.getDate() + 1);
+              dueDate = today.toISOString().split('T')[0];
+              break;
+            case 'übermorgen':
+              today.setDate(today.getDate() + 2);
+              dueDate = today.toISOString().split('T')[0];
+              break;
+            case 'nächste woche':
+              today.setDate(today.getDate() + 7);
+              dueDate = today.toISOString().split('T')[0];
+              break;
+            default:
+              // Für Wochentage
+              const weekdays = ['sonntag', 'montag', 'dienstag', 'mittwoch', 'donnerstag', 'freitag', 'samstag'];
+              const targetDay = weekdays.findIndex(day => dateKeyword.includes(day));
+              if (targetDay !== -1) {
+                const daysUntilTarget = (targetDay - today.getDay() + 7) % 7;
+                if (daysUntilTarget === 0) daysUntilTarget = 7; // Nächste Woche
+                today.setDate(today.getDate() + daysUntilTarget);
+                dueDate = today.toISOString().split('T')[0];
+              }
+          }
+        }
+        
+        // Bereinige den Titel von Datums-Texten
+        title = title.replace(/\b(heute|morgen|übermorgen|nächste woche|nächsten montag|nächsten dienstag|nächsten mittwoch|nächsten donnerstag|nächsten freitag|nächsten samstag|nächsten sonntag)\b/gi, '').trim();
+        title = title.replace(/\b(an|an den|an die)\b/gi, '').trim();
         
         // Erstelle die Aufgabe über die Tasks API
         if (accessToken) {
@@ -251,7 +285,7 @@ export default function App() {
             
             const botMsg = { 
               sender: 'bot', 
-              text: `✅ Erinnerung "${title}" wurde erfolgreich erstellt!` 
+              text: `✅ Erinnerung "${title}" wurde erfolgreich als Aufgabe erstellt!${dueDate ? ` Fällig am: ${dueDate}` : ''}` 
             };
             setMessages((msgs) => [...msgs, botMsg]);
             speak(botMsg.text);

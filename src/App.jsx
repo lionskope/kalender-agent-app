@@ -3,8 +3,10 @@ import ChatMessage from './components/ChatMessage';
 import { MicrophoneIcon, PaperAirplaneIcon, SpeakerWaveIcon } from './icons.jsx';
 import GoogleLoginButton from './components/GoogleLoginButton.jsx';
 import GoogleTasksPanel from './components/GoogleTasksPanel.jsx';
+import CookieBanner from './components/CookieBanner.jsx';
 import useGoogleAuth from './hooks/useGoogleAuth.js';
 import useGoogleTasks from './hooks/useGoogleTasks.js';
+import useCookiePreferences from './hooks/useCookiePreferences.js';
 
 // Platzhalterfunktionen für Google APIs
 function createGoogleEvent(data) {
@@ -142,6 +144,7 @@ export default function App() {
   const chatEndRef = useRef(null);
   const { user, accessToken, login, logout, loading, error } = useGoogleAuth();
   const { create_task } = useGoogleTasks(accessToken);
+  const { isFunctionalAccepted, isLoaded: cookieLoaded } = useCookiePreferences();
 
   // Platzhalter für Google Login
   const handleGoogleLogin = () => {
@@ -154,6 +157,12 @@ export default function App() {
   const startListening = () => {
     if (!('webkitSpeechRecognition' in window)) {
       alert('Spracherkennung wird von deinem Browser nicht unterstützt.');
+      return;
+    }
+    
+    // Prüfe Cookie-Einstellungen für funktionale Cookies
+    if (!isFunctionalAccepted()) {
+      alert('Bitte akzeptiere die funktionalen Cookies, um die Spracherkennung zu nutzen.');
       return;
     }
     
@@ -352,7 +361,16 @@ export default function App() {
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 drop-shadow-sm" style={{fontFamily:'SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif', letterSpacing:'-0.02em'}}>Kalender Agent</h1>
         {!user && (
           <div className="mt-4 w-full max-w-xs">
-            <GoogleLoginButton onClick={login} disabled={loading} />
+            <GoogleLoginButton 
+              onClick={() => {
+                if (!isFunctionalAccepted()) {
+                  alert('Bitte akzeptiere die funktionalen Cookies, um dich mit Google anzumelden.');
+                  return;
+                }
+                login();
+              }} 
+              disabled={loading || !isFunctionalAccepted()} 
+            />
           </div>
         )}
         {user && (
@@ -427,6 +445,9 @@ export default function App() {
       {/* Platzhalter für Google API Buttons */}
       <div className="fixed bottom-20 left-1/2 -translate-x-1/2 flex gap-2 z-10">
       </div>
+      
+      {/* Cookie Banner */}
+      <CookieBanner />
     </div>
   );
 }

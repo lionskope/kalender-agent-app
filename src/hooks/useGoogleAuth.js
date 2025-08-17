@@ -5,7 +5,7 @@ const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "824903097451-
 
 // Utility-Funktion zum Refresh des Access Tokens
 // Für Prototyp: Verwende Google Identity Services für Token-Refresh
-async function refreshAccessToken(refreshToken) {
+async function refreshAccessToken() {
   try {
     // Für Prototyp: Verwende Google Identity Services
     // Das ist sicherer als Client Secret im Frontend
@@ -139,9 +139,11 @@ export default function useGoogleAuth() {
 
       // Lade gespeicherte Token
       const storedTokens = loadStoredTokens();
+      console.log('Stored tokens:', storedTokens);
       
       if (!storedTokens) {
         // Keine Token vorhanden
+        console.log('No stored tokens found');
         setLoading(false);
         return;
       }
@@ -149,42 +151,50 @@ export default function useGoogleAuth() {
       // Prüfe ob Access Token noch gültig ist
       if (!isTokenExpired(storedTokens)) {
         // Token ist noch gültig
+        console.log('Token still valid, loading user info...');
         setAccessToken(storedTokens.access_token);
-        const userInfo = await loadUserInfo(storedTokens.access_token);
-        setUser(userInfo);
+        try {
+          const userInfo = await loadUserInfo(storedTokens.access_token);
+          setUser(userInfo);
+          console.log('User loaded successfully:', userInfo);
+        } catch (error) {
+          console.error('Failed to load user info:', error);
+          // Token ist ungültig, lösche es
+          localStorage.removeItem('google-auth-tokens');
+        }
         setLoading(false);
         return;
       }
 
-      // Token ist abgelaufen, versuche Refresh
-      if (storedTokens.refresh_token) {
-        try {
-          const newTokenData = await refreshAccessToken(storedTokens.refresh_token);
-          
-          // Speichere neue Token
-          saveTokens(
-            newTokenData.access_token,
-            storedTokens.refresh_token, // Refresh Token bleibt gleich
-            newTokenData.expires_in
-          );
+      // Token ist abgelaufen
+      console.log('Token expired, attempting refresh...');
+      
+      // Für Prototyp: Verwende Google Identity Services für neuen Token
+      try {
+        await loadGoogleScriptPromise();
+        
+        const newTokenData = await refreshAccessToken();
+        
+        // Speichere neue Token
+        saveTokens(
+          newTokenData.access_token,
+          storedTokens.refresh_token || null, // Refresh Token falls vorhanden
+          newTokenData.expires_in
+        );
 
-          setAccessToken(newTokenData.access_token);
-          const userInfo = await loadUserInfo(newTokenData.access_token);
-          setUser(userInfo);
-          setLoading(false);
-          return;
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
-          // Refresh fehlgeschlagen, lösche gespeicherte Token
-          localStorage.removeItem('google-auth-tokens');
-          setLoading(false);
-          return;
-        }
+        setAccessToken(newTokenData.access_token);
+        const userInfo = await loadUserInfo(newTokenData.access_token);
+        setUser(userInfo);
+        console.log('Token refreshed successfully');
+        setLoading(false);
+        return;
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        // Refresh fehlgeschlagen, lösche gespeicherte Token
+        localStorage.removeItem('google-auth-tokens');
+        setLoading(false);
+        return;
       }
-
-      // Kein Refresh Token vorhanden
-      localStorage.removeItem('google-auth-tokens');
-      setLoading(false);
     } catch (error) {
       console.error('Auth initialization error:', error);
       setError(error.message);
@@ -211,10 +221,12 @@ export default function useGoogleAuth() {
         prompt: 'consent', // Wichtig für Refresh Token
         callback: async (resp) => {
           if (resp.error) {
+            console.error('Login error:', resp.error);
             setError(resp.error);
             setLoading(false);
           } else {
             try {
+              console.log('Login successful, saving tokens...');
               // Speichere Token (inkl. Refresh Token falls vorhanden)
               saveTokens(
                 resp.access_token,
@@ -227,8 +239,10 @@ export default function useGoogleAuth() {
               // Lade User-Info
               const userInfo = await loadUserInfo(resp.access_token);
               setUser(userInfo);
+              console.log('User logged in successfully:', userInfo);
               setLoading(false);
             } catch (error) {
+              console.error('Error after login:', error);
               setError(error.message);
               setLoading(false);
             }
@@ -253,17 +267,13 @@ export default function useGoogleAuth() {
   // Manueller Token Refresh
   const refreshToken = useCallback(async () => {
     try {
-      const storedTokens = loadStoredTokens();
-      if (!storedTokens?.refresh_token) {
-        throw new Error('No refresh token available');
-      }
-
-      const newTokenData = await refreshAccessToken(storedTokens.refresh_token);
+      const newTokenData = await refreshAccessToken();
       
       // Speichere neue Token
+      const storedTokens = loadStoredTokens();
       saveTokens(
         newTokenData.access_token,
-        storedTokens.refresh_token,
+        storedTokens?.refresh_token || null,
         newTokenData.expires_in
       );
 

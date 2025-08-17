@@ -217,35 +217,28 @@ export default function App() {
 
   // Automatisch Sprachmodus starten beim App-Start (nur einmal)
   React.useEffect(() => {
-    console.log('Auto-Voice Check:', { cookieLoaded, functionalAccepted: isFunctionalAccepted(), autoVoiceEnabled, listening, hasAutoStarted });
-    
-    // Warte kurz, bis die App vollständig geladen ist
-    const timer = setTimeout(() => {
-      // Prüfe ob Cookie-Einstellungen geladen sind oder ob wir ohne Cookie-Banner starten können
-      const canStartAutoVoice = (cookieLoaded && isFunctionalAccepted()) || 
-                               (!cookieLoaded && autoVoiceEnabled && !listening);
+    // Nur beim ersten Laden der App
+    if (!hasAutoStarted && autoVoiceEnabled) {
+      console.log('Auto-Voice Check:', { cookieLoaded, functionalAccepted: isFunctionalAccepted(), autoVoiceEnabled, listening, hasAutoStarted });
       
-      if (canStartAutoVoice && autoVoiceEnabled && !listening && !hasAutoStarted) {
-        console.log('Starting auto voice mode...');
-        // Zeige eine kurze Nachricht an, dass der Sprachmodus startet
-        const autoStartMsg = { sender: 'bot', text: '🎤 Sprachmodus wird automatisch gestartet... Sprich jetzt!' };
-        setMessages(msgs => [...msgs, autoStartMsg]);
-        startListening();
-        setHasAutoStarted(true); // Markiere als gestartet
-      } else {
-        console.log('Auto voice conditions not met:', { 
-          cookieLoaded, 
-          functionalAccepted: isFunctionalAccepted(), 
-          autoVoiceEnabled, 
-          listening,
-          canStartAutoVoice,
-          hasAutoStarted
-        });
-      }
-    }, 1000); // 1 Sekunde Verzögerung
+      // Warte kurz, bis die App vollständig geladen ist
+      const timer = setTimeout(() => {
+        // Einfache Prüfung: Wenn funktionale Cookies akzeptiert oder noch nicht geladen
+        if ((cookieLoaded && isFunctionalAccepted()) || !cookieLoaded) {
+          console.log('Starting auto voice mode...');
+          // Zeige eine kurze Nachricht an, dass der Sprachmodus startet
+          const autoStartMsg = { sender: 'bot', text: '🎤 Sprachmodus wird automatisch gestartet... Sprich jetzt!' };
+          setMessages(msgs => [...msgs, autoStartMsg]);
+          startListening();
+          setHasAutoStarted(true); // Markiere als gestartet
+        } else {
+          console.log('Functional cookies not accepted yet');
+        }
+      }, 1500); // 1.5 Sekunden Verzögerung
 
-    return () => clearTimeout(timer);
-  }, [cookieLoaded, isFunctionalAccepted, autoVoiceEnabled, listening, hasAutoStarted]);
+      return () => clearTimeout(timer);
+    }
+  }, [cookieLoaded, isFunctionalAccepted, autoVoiceEnabled, hasAutoStarted]);
 
   // Nachricht senden
   const sendMessage = async (e) => {
@@ -468,6 +461,16 @@ export default function App() {
                 const newValue = !autoVoiceEnabled;
                 setAutoVoiceEnabled(newValue);
                 localStorage.setItem('auto-voice-enabled', JSON.stringify(newValue));
+                
+                // Wenn aktiviert, starte sofort den Sprachmodus
+                if (newValue && !hasAutoStarted) {
+                  setTimeout(() => {
+                    const autoStartMsg = { sender: 'bot', text: '🎤 Auto-Sprachmodus aktiviert! Sprich jetzt!' };
+                    setMessages(msgs => [...msgs, autoStartMsg]);
+                    startListening();
+                    setHasAutoStarted(true);
+                  }, 500);
+                }
               }}
               className={`p-2 rounded-full transition shadow-md ${
                 autoVoiceEnabled 

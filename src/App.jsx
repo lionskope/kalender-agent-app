@@ -142,8 +142,8 @@ export default function App() {
   const [showTasksPanel, setShowTasksPanel] = useState(false);
   const recognitionRef = useRef(null);
   const chatEndRef = useRef(null);
-  const { user, accessToken, login, logout, loading, error } = useGoogleAuth();
-  const { create_task } = useGoogleTasks(accessToken);
+  const { user, accessToken, login, logout, loading, error, refreshToken, isAuthenticated } = useGoogleAuth();
+  const { create_task } = useGoogleTasks(accessToken, refreshToken);
   const { isFunctionalAccepted, isLoaded: cookieLoaded } = useCookiePreferences();
   const [autoVoiceEnabled, setAutoVoiceEnabled] = useState(() => {
     const saved = localStorage.getItem('auto-voice-enabled');
@@ -240,6 +240,26 @@ export default function App() {
     }
   }, [cookieLoaded, isFunctionalAccepted, autoVoiceEnabled, hasAutoStarted]);
 
+  // API Call mit automatischem Token-Refresh
+  const makeApiCallWithRefresh = async (apiCall) => {
+    try {
+      return await apiCall();
+    } catch (error) {
+      if (error.message.includes('Token expired') || error.message.includes('401')) {
+        try {
+          console.log('Attempting token refresh...');
+          await refreshToken();
+          // Versuche den API-Call erneut
+          return await apiCall();
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          throw new Error('Authentifizierung fehlgeschlagen. Bitte melden Sie sich erneut an.');
+        }
+      }
+      throw error;
+    }
+  };
+
   // Nachricht senden
   const sendMessage = async (e) => {
     e.preventDefault();
@@ -252,11 +272,25 @@ export default function App() {
     // Erkenne Kalender-Befehl (deutlich erweitert)
     const kalenderRegex = /\b(erstelle(n)?( mir)?( einen| einen neuen| einen weiteren)? ?termin|trage (mir )?einen termin ein|kalendereintrag|termin für|ich brauche einen termin|neuer termin|termin am|termin um|meeting|besprechung|appointment|treffen)\b/i;
     if (kalenderRegex.test(input)) {
-      const info = await createGoogleEventFromText(input, accessToken);
-      const botMsg = { sender: 'bot', text: info };
-      setMessages((msgs) => [...msgs, botMsg]);
-      speak(botMsg.text);
-      return;
+      if (isAuthenticated) {
+        try {
+          const info = await makeApiCallWithRefresh(() => createGoogleEventFromText(input, accessToken));
+          const botMsg = { sender: 'bot', text: info };
+          setMessages((msgs) => [...msgs, botMsg]);
+          speak(botMsg.text);
+          return;
+        } catch (error) {
+          const botMsg = { sender: 'bot', text: `❌ Fehler beim Erstellen des Termins: ${error.message}` };
+          setMessages((msgs) => [...msgs, botMsg]);
+          speak(botMsg.text);
+          return;
+        }
+      } else {
+        const botMsg = { sender: 'bot', text: 'Bitte melden Sie sich zuerst mit Google an, um Termine zu erstellen.' };
+        setMessages((msgs) => [...msgs, botMsg]);
+        speak(botMsg.text);
+        return;
+      }
     }
 
     // Erkenne Tasks-Befehl
@@ -321,9 +355,9 @@ export default function App() {
         title = title.replace(/\b(an|an den|an die)\b/gi, '').trim();
         
         // Erstelle die Aufgabe über die Tasks API
-        if (accessToken) {
+        if (isAuthenticated) {
           try {
-            await create_task(title, dueDate, 'Erinnerung erstellt über Chat');
+            await makeApiCallWithRefresh(() => create_task(title, dueDate, 'Erinnerung erstellt über Chat'));
             
             const botMsg = { 
               sender: 'bot', 
@@ -392,7 +426,17 @@ export default function App() {
       )}
       <header className="p-6 bg-white/80 backdrop-blur-md shadow-xl flex flex-col items-center gap-2 rounded-b-3xl border-b border-gray-200 animate-fade-in">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 drop-shadow-sm" style={{fontFamily:'SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif', letterSpacing:'-0.02em'}}>Kalender Agent</h1>
-        {!user && (
+        
+        {/* Loading State */}
+        {loading && (
+          <div className="mt-4 flex items-center gap-2">
+            <div className="w-4 h-4 border-2 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-gray-600">Authentifizierung lädt...</span>
+          </div>
+        )}
+        
+        {/* Login Button */}
+        {!loading && !user && (
           <div className="mt-4 w-full max-w-xs">
             <GoogleLoginButton 
               onClick={() => {
@@ -406,11 +450,20 @@ export default function App() {
             />
           </div>
         )}
-        {user && (
+        
+        {/* User Info */}
+        {!loading && user && (
           <div className="flex items-center gap-3 mt-2">
             <img src={user.picture} alt="Profil" className="w-10 h-10 rounded-full border border-gray-200 shadow" />
             <span className="font-semibold text-gray-800" style={{fontFamily:'SF Pro Text, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif'}}>{user.name}</span>
             <button onClick={logout} className="ml-2 px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold shadow-sm border border-gray-200 transition active:scale-95">Logout</button>
+          </div>
+        )}
+        
+        {/* Error State */}
+        {error && (
+          <div className="mt-2 p-2 bg-red-100 text-red-700 rounded-lg text-sm">
+            {error}
           </div>
         )}
       </header>

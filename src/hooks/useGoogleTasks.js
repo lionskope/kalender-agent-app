@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 
-export default function useGoogleTasks(accessToken) {
+export default function useGoogleTasks(accessToken, refreshToken) {
   
   // Google Tasks API Client initialisieren
   const getTasksClient = useCallback(() => {
@@ -15,6 +15,35 @@ export default function useGoogleTasks(accessToken) {
       }
     };
   }, [accessToken]);
+
+  // API Request mit automatischem Token-Refresh
+  const makeApiRequest = useCallback(async (url, options = {}) => {
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+          ...options.headers,
+        },
+      });
+
+      // Wenn 401 Unauthorized, versuche Token-Refresh
+      if (response.status === 401 && refreshToken) {
+        console.log('Token expired, attempting refresh...');
+        try {
+          // Hier würden wir den refreshToken aufrufen, aber das machen wir in der App.jsx
+          throw new Error('Token expired, please refresh');
+        } catch (refreshError) {
+          throw new Error('Access Token abgelaufen. Bitte melden Sie sich erneut an.');
+        }
+      }
+
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }, [accessToken, refreshToken]);
 
   // Standard Taskliste ID holen
   const getDefaultTaskList = useCallback(async () => {

@@ -145,6 +145,10 @@ export default function App() {
   const { user, accessToken, login, logout, loading, error } = useGoogleAuth();
   const { create_task } = useGoogleTasks(accessToken);
   const { isFunctionalAccepted, isLoaded: cookieLoaded } = useCookiePreferences();
+  const [autoVoiceEnabled, setAutoVoiceEnabled] = useState(() => {
+    const saved = localStorage.getItem('auto-voice-enabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
 
   // Platzhalter für Google Login
   const handleGoogleLogin = () => {
@@ -206,6 +210,21 @@ export default function App() {
   React.useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Automatisch Sprachmodus starten beim App-Start
+  React.useEffect(() => {
+    // Warte kurz, bis die App vollständig geladen ist
+    const timer = setTimeout(() => {
+      if (cookieLoaded && isFunctionalAccepted() && autoVoiceEnabled) {
+        // Zeige eine kurze Nachricht an, dass der Sprachmodus startet
+        const autoStartMsg = { sender: 'bot', text: '🎤 Sprachmodus wird automatisch gestartet... Sprich jetzt!' };
+        setMessages(msgs => [...msgs, autoStartMsg]);
+        startListening();
+      }
+    }, 1000); // 1 Sekunde Verzögerung
+
+    return () => clearTimeout(timer);
+  }, [cookieLoaded, isFunctionalAccepted, autoVoiceEnabled]);
 
   // Nachricht senden
   const sendMessage = async (e) => {
@@ -409,8 +428,8 @@ export default function App() {
       {/* Mobile-optimierte Eingabeleiste */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg">
         <div className="max-w-lg mx-auto p-3">
-          {/* Mikrofon-Button über der Eingabeleiste */}
-          <div className="flex justify-center mb-2">
+          {/* Mikrofon-Button und Auto-Voice Toggle */}
+          <div className="flex justify-center items-center gap-3 mb-2">
             <button
               type="button"
               onClick={startListening}
@@ -419,6 +438,27 @@ export default function App() {
               disabled={listening}
             >
               <MicrophoneIcon className="h-7 w-7 text-sky-600" />
+            </button>
+            
+            {/* Auto-Voice Toggle */}
+            <button
+              type="button"
+              onClick={() => {
+                const newValue = !autoVoiceEnabled;
+                setAutoVoiceEnabled(newValue);
+                localStorage.setItem('auto-voice-enabled', JSON.stringify(newValue));
+              }}
+              className={`p-2 rounded-full transition shadow-md ${
+                autoVoiceEnabled 
+                  ? 'bg-green-100 text-green-600' 
+                  : 'bg-gray-100 text-gray-400'
+              }`}
+              aria-label="Automatischen Sprachmodus umschalten"
+              title={autoVoiceEnabled ? 'Auto-Sprachmodus aktiv' : 'Auto-Sprachmodus inaktiv'}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+              </svg>
             </button>
           </div>
           

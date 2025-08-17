@@ -213,18 +213,33 @@ export default function App() {
 
   // Automatisch Sprachmodus starten beim App-Start
   React.useEffect(() => {
+    console.log('Auto-Voice Check:', { cookieLoaded, functionalAccepted: isFunctionalAccepted(), autoVoiceEnabled, listening });
+    
     // Warte kurz, bis die App vollständig geladen ist
     const timer = setTimeout(() => {
-      if (cookieLoaded && isFunctionalAccepted() && autoVoiceEnabled) {
+      // Prüfe ob Cookie-Einstellungen geladen sind oder ob wir ohne Cookie-Banner starten können
+      const canStartAutoVoice = (cookieLoaded && isFunctionalAccepted()) || 
+                               (!cookieLoaded && autoVoiceEnabled && !listening);
+      
+      if (canStartAutoVoice && autoVoiceEnabled && !listening) {
+        console.log('Starting auto voice mode...');
         // Zeige eine kurze Nachricht an, dass der Sprachmodus startet
         const autoStartMsg = { sender: 'bot', text: '🎤 Sprachmodus wird automatisch gestartet... Sprich jetzt!' };
         setMessages(msgs => [...msgs, autoStartMsg]);
         startListening();
+      } else {
+        console.log('Auto voice conditions not met:', { 
+          cookieLoaded, 
+          functionalAccepted: isFunctionalAccepted(), 
+          autoVoiceEnabled, 
+          listening,
+          canStartAutoVoice
+        });
       }
     }, 1000); // 1 Sekunde Verzögerung
 
     return () => clearTimeout(timer);
-  }, [cookieLoaded, isFunctionalAccepted, autoVoiceEnabled]);
+  }, [cookieLoaded, isFunctionalAccepted, autoVoiceEnabled, listening]);
 
   // Nachricht senden
   const sendMessage = async (e) => {

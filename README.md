@@ -15,6 +15,7 @@ Eine moderne, mobilefreundliche Chatbot-App mit Sprachfunktion, React und Tailwi
    - Füge folgende Secrets hinzu:
      - `VITE_OPENAI_API_KEY`: Dein OpenAI API Key
      - `VITE_GOOGLE_CLIENT_ID`: Deine Google Client ID
+     - `VITE_GOOGLE_CLIENT_SECRET`: Dein Google Client Secret (optional, für Token-Refresh)
 
 2. **GitHub Pages Source ändern:**
    - Gehe zu: `https://github.com/lionskope/kalender-agent-app/settings/pages`

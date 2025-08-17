@@ -149,6 +149,10 @@ export default function App() {
     const saved = localStorage.getItem('auto-voice-enabled');
     return saved !== null ? JSON.parse(saved) : true;
   });
+  const [hasAutoStarted, setHasAutoStarted] = useState(() => {
+    // Reset beim App-Start
+    return false;
+  });
 
   // Platzhalter für Google Login
   const handleGoogleLogin = () => {
@@ -211,9 +215,9 @@ export default function App() {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Automatisch Sprachmodus starten beim App-Start
+  // Automatisch Sprachmodus starten beim App-Start (nur einmal)
   React.useEffect(() => {
-    console.log('Auto-Voice Check:', { cookieLoaded, functionalAccepted: isFunctionalAccepted(), autoVoiceEnabled, listening });
+    console.log('Auto-Voice Check:', { cookieLoaded, functionalAccepted: isFunctionalAccepted(), autoVoiceEnabled, listening, hasAutoStarted });
     
     // Warte kurz, bis die App vollständig geladen ist
     const timer = setTimeout(() => {
@@ -221,25 +225,27 @@ export default function App() {
       const canStartAutoVoice = (cookieLoaded && isFunctionalAccepted()) || 
                                (!cookieLoaded && autoVoiceEnabled && !listening);
       
-      if (canStartAutoVoice && autoVoiceEnabled && !listening) {
+      if (canStartAutoVoice && autoVoiceEnabled && !listening && !hasAutoStarted) {
         console.log('Starting auto voice mode...');
         // Zeige eine kurze Nachricht an, dass der Sprachmodus startet
         const autoStartMsg = { sender: 'bot', text: '🎤 Sprachmodus wird automatisch gestartet... Sprich jetzt!' };
         setMessages(msgs => [...msgs, autoStartMsg]);
         startListening();
+        setHasAutoStarted(true); // Markiere als gestartet
       } else {
         console.log('Auto voice conditions not met:', { 
           cookieLoaded, 
           functionalAccepted: isFunctionalAccepted(), 
           autoVoiceEnabled, 
           listening,
-          canStartAutoVoice
+          canStartAutoVoice,
+          hasAutoStarted
         });
       }
     }, 1000); // 1 Sekunde Verzögerung
 
     return () => clearTimeout(timer);
-  }, [cookieLoaded, isFunctionalAccepted, autoVoiceEnabled, listening]);
+  }, [cookieLoaded, isFunctionalAccepted, autoVoiceEnabled, listening, hasAutoStarted]);
 
   // Nachricht senden
   const sendMessage = async (e) => {

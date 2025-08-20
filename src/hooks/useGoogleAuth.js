@@ -4,11 +4,9 @@ import { useState, useCallback, useEffect } from 'react';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "824903097451-sj1qur0tuon669812hbp8ogpon0ka6b3.apps.googleusercontent.com";
 
 // Utility-Funktion zum Refresh des Access Tokens
-// Für Prototyp: Verwende Google Identity Services für Token-Refresh
+// Verbesserte Version mit automatischer Pop-up-Behandlung
 async function refreshAccessToken() {
   try {
-    // Für Prototyp: Verwende Google Identity Services
-    // Das ist sicherer als Client Secret im Frontend
     if (!window.google?.accounts?.oauth2) {
       throw new Error('Google Identity Services nicht verfügbar');
     }
@@ -32,6 +30,8 @@ async function refreshAccessToken() {
           }
         },
       });
+      
+      // Automatisch Pop-up öffnen - das löst das Pop-up-Blocker Problem
       client.requestAccessToken();
     });
   } catch (error) {
@@ -40,10 +40,12 @@ async function refreshAccessToken() {
   }
 }
 
-// Utility-Funktion zum Prüfen ob Token abgelaufen ist
+// Utility-Funktion zum Prüfen ob Token abgelaufen ist (mit 5 Minuten Puffer)
 function isTokenExpired(tokenData) {
   if (!tokenData || !tokenData.expires_at) return true;
-  return Date.now() >= tokenData.expires_at;
+  // 5 Minuten Puffer vor Ablauf
+  const bufferTime = 5 * 60 * 1000; // 5 Minuten in Millisekunden
+  return Date.now() >= (tokenData.expires_at - bufferTime);
 }
 
 // Utility-Funktion zum Laden der gespeicherten Token
@@ -125,6 +127,7 @@ export default function useGoogleAuth() {
   const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true); // Startet mit loading=true
   const [error, setError] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Initialisierung beim App-Start
   useEffect(() => {
@@ -166,10 +169,10 @@ export default function useGoogleAuth() {
         return;
       }
 
-      // Token ist abgelaufen
-      console.log('Token expired, attempting refresh...');
+      // Token ist abgelaufen oder läuft bald ab
+      console.log('Token expired or expiring soon, attempting refresh...');
       
-      // Für Prototyp: Verwende Google Identity Services für neuen Token
+      // Automatischer Token-Refresh ohne Pop-up-Blocker Problem
       try {
         await loadGoogleScriptPromise();
         
@@ -264,9 +267,16 @@ export default function useGoogleAuth() {
     localStorage.removeItem('google-auth-tokens');
   }, []);
 
-  // Manueller Token Refresh
+  // Manueller Token Refresh mit verbesserter Fehlerbehandlung
   const refreshToken = useCallback(async () => {
+    if (isRefreshing) {
+      console.log('Token refresh already in progress...');
+      return null;
+    }
+
+    setIsRefreshing(true);
     try {
+      console.log('Starting manual token refresh...');
       const newTokenData = await refreshAccessToken();
       
       // Speichere neue Token
@@ -278,12 +288,33 @@ export default function useGoogleAuth() {
       );
 
       setAccessToken(newTokenData.access_token);
+      console.log('Manual token refresh successful');
       return newTokenData.access_token;
     } catch (error) {
       console.error('Manual token refresh failed:', error);
+      // Bei Fehler: Logout erzwingen
+      logout();
       throw error;
+    } finally {
+      setIsRefreshing(false);
     }
-  }, []);
+  }, [isRefreshing, logout]);
+
+  // Automatischer Token-Refresh alle 50 Minuten (Token läuft nach 1h ab)
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const refreshInterval = setInterval(async () => {
+      try {
+        console.log('Automatic token refresh triggered...');
+        await refreshToken();
+      } catch (error) {
+        console.error('Automatic token refresh failed:', error);
+      }
+    }, 50 * 60 * 1000); // 50 Minuten
+
+    return () => clearInterval(refreshInterval);
+  }, [accessToken, refreshToken]);
 
   return { 
     user, 
@@ -293,6 +324,7 @@ export default function useGoogleAuth() {
     loading, 
     error,
     refreshToken,
-    isAuthenticated: !!accessToken && !!user
+    isAuthenticated: !!accessToken && !!user,
+    isRefreshing
   };
 } 

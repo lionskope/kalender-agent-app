@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import ChatMessage from './components/ChatMessage';
 import { MicrophoneIcon, PaperAirplaneIcon, SpeakerWaveIcon } from './icons.jsx';
 import GoogleLoginButton from './components/GoogleLoginButton.jsx';
@@ -140,9 +140,10 @@ export default function App() {
   const [input, setInput] = useState('');
   const [listening, setListening] = useState(false);
   const [showTasksPanel, setShowTasksPanel] = useState(false);
+  const [showPopupWarning, setShowPopupWarning] = useState(false);
   const recognitionRef = useRef(null);
   const chatEndRef = useRef(null);
-  const { user, accessToken, login, logout, loading, error, refreshToken, isAuthenticated } = useGoogleAuth();
+  const { user, accessToken, login, logout, loading, error, refreshToken, isAuthenticated, isRefreshing } = useGoogleAuth();
   const { create_task } = useGoogleTasks(accessToken, refreshToken);
   const { isFunctionalAccepted, isLoaded: cookieLoaded } = useCookiePreferences();
   const [autoVoiceEnabled, setAutoVoiceEnabled] = useState(() => {
@@ -153,6 +154,21 @@ export default function App() {
     // Reset beim App-Start
     return false;
   });
+
+  // Pop-up-Blocker-Erkennung
+  useEffect(() => {
+    const checkPopupBlocker = () => {
+      const popup = window.open('', '_blank', 'width=1,height=1');
+      if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+        setShowPopupWarning(true);
+      } else {
+        popup.close();
+      }
+    };
+
+    // Prüfe Pop-up-Blocker beim ersten Laden
+    checkPopupBlocker();
+  }, []);
 
   // Platzhalter für Google Login
   const handleGoogleLogin = () => {
@@ -245,14 +261,22 @@ export default function App() {
     try {
       return await apiCall();
     } catch (error) {
-      if (error.message.includes('Token expired') || error.message.includes('401')) {
+      if (error.message.includes('Token expired') || error.message.includes('401') || error.message.includes('403')) {
         try {
-          console.log('Attempting token refresh...');
+          console.log('Token expired, attempting automatic refresh...');
+          // Zeige Benutzer-Feedback
+          const refreshMsg = { sender: 'bot', text: '🔄 Token wird automatisch erneuert...' };
+          setMessages((msgs) => [...msgs, refreshMsg]);
+          
           await refreshToken();
-          // Versuche den API-Call erneut
+          
+          // Entferne Refresh-Nachricht und versuche den API-Call erneut
+          setMessages((msgs) => msgs.filter(msg => msg !== refreshMsg));
           return await apiCall();
         } catch (refreshError) {
           console.error('Token refresh failed:', refreshError);
+          const errorMsg = { sender: 'bot', text: '❌ Authentifizierung fehlgeschlagen. Bitte melden Sie sich erneut an.' };
+          setMessages((msgs) => [...msgs, errorMsg]);
           throw new Error('Authentifizierung fehlgeschlagen. Bitte melden Sie sich erneut an.');
         }
       }
@@ -424,6 +448,28 @@ export default function App() {
           </div>
         </div>
       )}
+      
+      {/* Pop-up-Blocker-Warnung */}
+      {showPopupWarning && (
+        <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-yellow-100 border border-yellow-400 text-yellow-800 px-4 py-3 rounded-lg shadow-lg max-w-md">
+          <div className="flex items-center gap-2">
+            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+            <div>
+              <p className="font-medium">Pop-up-Blocker erkannt</p>
+              <p className="text-sm">Bitte erlauben Sie Pop-ups für diese Seite, damit die Google-Anmeldung funktioniert.</p>
+            </div>
+            <button 
+              onClick={() => setShowPopupWarning(false)}
+              className="ml-2 text-yellow-600 hover:text-yellow-800"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
+      
       <header className="p-6 bg-white/80 backdrop-blur-md shadow-xl flex flex-col items-center gap-2 rounded-b-3xl border-b border-gray-200 animate-fade-in">
         <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight text-gray-900 drop-shadow-sm" style={{fontFamily:'SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif', letterSpacing:'-0.02em'}}>Kalender Agent</h1>
         
@@ -431,7 +477,9 @@ export default function App() {
         {loading && (
           <div className="mt-4 flex items-center gap-2">
             <div className="w-4 h-4 border-2 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-gray-600">Authentifizierung lädt...</span>
+            <span className="text-gray-600">
+              {isRefreshing ? 'Token wird erneuert...' : 'Authentifizierung lädt...'}
+            </span>
           </div>
         )}
         
